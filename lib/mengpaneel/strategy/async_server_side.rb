@@ -8,27 +8,34 @@ module Mengpaneel
         return false unless self.class.async?
 
         return true if all_calls[:tracking].blank?
-
-        Worker.perform_async(all_calls, controller.try(:request).try(:remote_ip))
+        Delayed::Job.enqueue MengpaneelWorker.new(all_calls, controller.try(:request).try(:remote_ip))
+        #Worker.perform_async(all_calls, controller.try(:request).try(:remote_ip))
 
         true
       end
 
       private
         def self.async?
-          defined?(::Sidekiq)
+          defined?(::Delayed::Job)
         end
 
       if async?
-        class Worker
-          include Sidekiq::Worker
-
-          def perform(all_calls, remote_ip = nil)
+        MengpaneelWorker = Struct.new(:all_calls, :remote_ip = nil) do
+          def perform
             all_calls = all_calls.with_indifferent_access
-            
             Strategy::ServerSide.new(all_calls, nil, remote_ip).run
           end
         end
+
+        # class Worker
+        #   include Sidekiq::Worker
+
+        #   def perform(all_calls, remote_ip = nil)
+        #     all_calls = all_calls.with_indifferent_access
+            
+        #     Strategy::ServerSide.new(all_calls, nil, remote_ip).run
+        #   end
+        # end
       end
     end
   end
