@@ -20,7 +20,7 @@ module Mengpaneel
         end
 
       if async?
-        MengpaneelWorker = Struct.new(:all_calls, :remote_ip = nil) do
+        MengpaneelWorker = Struct.new(:all_calls, :remote_ip) do
           def perform
             all_calls = all_calls.with_indifferent_access
             Strategy::ServerSide.new(all_calls, nil, remote_ip).run
